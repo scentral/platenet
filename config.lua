@@ -7,7 +7,7 @@ Config.CommunitySlug = 'your-community'
 Config.GameUrl = 'https://game.platenet.app'
 
 -- Update checker.(DO NOT MODIFY)
-Config.UpdateUrl = ''
+Config.UpdateUrl = 'https://raw.githubusercontent.com/scentral/platenet/refs/heads/main/VERSION.txt'
 
 -- Command used to open the PlateNet tablet.
 Config.Commands = {
