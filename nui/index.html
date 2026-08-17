@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PlateNet</title>
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: system-ui, sans-serif;
+}
+#wrap {
+    display: none;
+    position: fixed;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 3vh 3vw;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.18);
+}
+#wrap.is-open {
+    display: flex;
+}
+#shell {
+    position: relative;
+    width: min(1265px, 90vw);
+    height: min(760px, 84vh);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    background: #0f141a;
+    box-shadow:
+        0 24px 70px rgba(0, 0, 0, 0.58),
+        0 0 0 7px rgba(10, 14, 19, 0.88);
+    overflow: hidden;
+    transform: translate3d(0, 0, 0) scale(1);
+    transform-origin: center;
+}
+iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #0f141a;
+}
+#hint {
+    position: absolute;
+    bottom: 1vh;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, .55);
+}
+#settings {
+    display: none;
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1000;
+    padding: 9px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    background: rgba(12,16,21,.96);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    color: #fff;
+    user-select: none;
+}
+#settings.is-open {
+    display: block;
+}
+#settings .row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+#settings .row:last-child {
+    margin-bottom: 0;
+}
+#settings button {
+    min-width: 34px;
+    height: 30px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 7px;
+    background: #1b232d;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+#settings button:hover {
+    background: #263241;
+}
+#scaleValue {
+    min-width: 52px;
+    text-align: center;
+    font-size: 12px;
+}
+#done {
+    min-width: 74px !important;
+}
+@media (max-width: 900px), (max-height: 650px) {
+    #wrap {
+        padding: 2vh 2vw;
+    }
+    #shell {
+        width: 94vw;
+        height: 90vh;
+        border-radius: 12px;
+    }
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+    <div id="shell">
+        <iframe id="frame" title="PlateNet MDT" referrerpolicy="no-referrer"></iframe>
+    </div>
+    <div id="hint">ESC to close</div>
+</div>
+<div id="settings">
+    <div class="row">
+        <button type="button" data-action="scale-down">−</button>
+        <span id="scaleValue">100%</span>
+        <button type="button" data-action="scale-up">+</button>
+    </div>
+    <div class="row">
+        <button type="button" data-action="left">←</button>
+        <button type="button" data-action="up">↑</button>
+        <button type="button" data-action="down">↓</button>
+        <button type="button" data-action="right">→</button>
+    </div>
+    <div class="row">
+        <button type="button" data-action="reset">Reset</button>
+        <button type="button" id="done" data-action="done">Done</button>
+    </div>
+</div>
+<script>
+(() => {
+    'use strict';
+
+    const wrap = document.getElementById('wrap');
+    const shell = document.getElementById('shell');
+    const frame = document.getElementById('frame');
+    const settings = document.getElementById('settings');
+    const scaleValue = document.getElementById('scaleValue');
+    const storageKey = 'platenet_tablet_layout';
+    const staleAfterMs = 10 * 60 * 1000;
+
+    let loadedUrl = '';
+    let closedAt = 0;
+    let layout = {scale: 1, x: 0, y: 0};
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const canon = url => url.replace(/#.*$/, '');
+
+    const applyLayout = () => {
+        layout.scale = clamp(Number(layout.scale) || 1, 0.65, 3.0);
+        layout.x = clamp(Number(layout.x) || 0, -600, 600);
+        layout.y = clamp(Number(layout.y) || 0, -350, 350);
+        shell.style.transform = `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${layout.scale})`;
+        scaleValue.textContent = `${Math.round(layout.scale * 100)}%`;
+    };
+
+    const saveLayout = () => {
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(layout));
+        } catch (_) {}
+    };
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved && typeof saved === 'object') {
+            layout = {
+                scale: Number(saved.scale) || 1,
+                x: Number(saved.x) || 0,
+                y: Number(saved.y) || 0
+            };
+        }
+    } catch (_) {}
+
+    applyLayout();
+
+    settings.addEventListener('click', event => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+
+        const action = button.dataset.action;
+
+        if (action === 'scale-down') layout.scale -= 0.05;
+        if (action === 'scale-up') layout.scale += 0.05;
+        if (action === 'left') layout.x -= 20;
+        if (action === 'right') layout.x += 20;
+        if (action === 'up') layout.y -= 20;
+        if (action === 'down') layout.y += 20;
+        if (action === 'reset') layout = {scale: 1, x: 0, y: 0};
+        if (action === 'done') {
+            settings.classList.remove('is-open');
+            return;
+        }
+
+        applyLayout();
+        saveLayout();
+    });
+
+    window.addEventListener('message', event => {
+        if (frame.contentWindow && event.source === frame.contentWindow) return;
+
+        const data = event.data || {};
+
+        if (data.action === 'open') {
+            if (typeof data.url === 'string' && /^https?:\/\//i.test(data.url)) {
+                const stale = closedAt && (Date.now() - closedAt) > staleAfterMs;
+                if (canon(data.url) !== loadedUrl || stale) {
+                    frame.src = data.url;
+                    loadedUrl = canon(data.url);
+                }
+                wrap.classList.add('is-open');
+            }
+            return;
+        }
+
+        if (data.action === 'close') {
+            settings.classList.remove('is-open');
+            wrap.classList.remove('is-open');
+            closedAt = Date.now();
+            return;
+        }
+
+        if (data.action === 'settings' && data.open) {
+            settings.classList.add('is-open');
+        }
+    });
+
+    document.addEventListener('keyup', event => {
+        if (event.key === 'Escape') {
+            fetch(`https://${window.GetParentResourceName ? GetParentResourceName() : 'platenet'}/close`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: '{}'
+            }).catch(() => {});
+        }
+    });
+})();
+</script>
+</body>
+</html>
