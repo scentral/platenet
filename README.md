@@ -2,27 +2,10 @@
 
 # PlateNet CAD/MDT Tablet for FiveM
 
-Bring the PlateNet CAD/MDT browser into FiveM as an in-game tablet.
-
-[![PlateNet Website](https://img.shields.io/badge/PlateNet-platenet.app-111827?style=for-the-badge)](https://platenet.app/)
-[![PlateNet Discord](https://img.shields.io/badge/Discord-Join%20PlateNet-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Mpn6SwhXeW)
-[![Contact](https://img.shields.io/badge/Contact-Support-1f2937?style=for-the-badge)](https://platenet.app/contact)
-
-**PlateNet CAD/MDT:** https://platenet.app/
+[![PlateNet](https://img.shields.io/badge/PlateNet-platenet.app-111827?style=for-the-badge)](https://platenet.app/)
+[![Discord](https://img.shields.io/badge/Discord-Join%20PlateNet-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Mpn6SwhXeW)
 
 </div>
-
----
-
-## What this is
-
-This resource opens the PlateNet CAD/MDT inside FiveM as a tablet.
-
-PlateNet itself is the browser-based CAD/MDT. If you have not set up PlateNet yet, check it out here:
-
-**https://platenet.app/**
-
-This FiveM resource has no additional FiveM resource dependencies.
 
 ---
 
@@ -32,7 +15,7 @@ This FiveM resource has no additional FiveM resource dependencies.
 
 Place the resource in your server's resources folder.
 
-The folder must be named exactly:
+Keep the folder name exactly:
 
 ```text
 platenet
@@ -40,19 +23,19 @@ platenet
 
 Do not rename it.
 
-### 2. Complete the server setup
+### 2. Configure your server
 
-Before starting PlateNet for the first time, complete **Appendix A - Server Configuration** at the bottom of this README.
+Complete **Appendix A - Server Configuration** at the bottom of this README.
 
 ### 3. Start PlateNet
 
-Start or restart your server after adding the configuration from Appendix A.
+Start or restart your server after saving the configuration.
 
 ---
 
 ## Open the tablet
 
-In game, use:
+Use:
 
 ```text
 /platenet
@@ -64,22 +47,29 @@ or press:
 F6
 ```
 
-F6 is the default keybind.
+You can change the keybind in FiveM:
 
-You can also change the keybind from FiveM's in-game key binding settings without editing the resource.
+```text
+Settings
+→ Key Bindings
+→ FiveM
+→ Open PlateNet
+```
+
+You can also change the default key in `config.lua`.
 
 ---
 
-## Pair your PlateNet account
+## Pair your account
 
-The first time you open the tablet, it will show a **12-digit pairing code**.
+1. Open the tablet in FiveM.
+2. Copy the 12-digit code shown on screen.
+3. Sign in at **https://platenet.app/**
+4. Open **https://platenet.app/device**
+5. Enter or approve the code.
+6. Finish pairing.
 
-1. Sign in at **https://platenet.app/**
-2. Open **https://platenet.app/device**
-3. Enter or approve the 12-digit code shown on the FiveM tablet
-4. Finish the pairing
-
-Once approved, reopen the tablet if needed and you are ready to use PlateNet.
+Once approved, open the tablet and use PlateNet normally.
 
 ---
 
@@ -91,40 +81,15 @@ Use:
 /platenet set
 ```
 
-This opens the tablet layout controls.
-
-You can move the tablet around the screen, increase or decrease its size, reset the layout, and save the position locally.
+Use the on-screen controls to move the tablet, increase or decrease its size, reset the layout, or finish editing.
 
 ---
 
-## Keybinds
-
-The default tablet key is:
-
-```text
-F6
-```
-
-You can change it in FiveM:
-
-```text
-Settings
-→ Key Bindings
-→ FiveM
-→ Open PlateNet
-```
-
-The default key can also be changed in `config.lua`.
-
----
-
-## Need help?
+## Help
 
 **PlateNet:** https://platenet.app/
 
 **Device pairing:** https://platenet.app/device
-
-**Contact / Support:** https://platenet.app/contact
 
 **Discord:** https://discord.gg/Mpn6SwhXeW
 
@@ -132,11 +97,11 @@ The default key can also be changed in `config.lua`.
 
 # Appendix A - Server Configuration
 
-## Generate your PlateNet API key
+## Generate your API key
 
 Sign in to PlateNet and generate an API key for your community.
 
-Then add the following to your `server.cfg`:
+Add this to your `server.cfg`:
 
 ```cfg
 ## PlateNet
@@ -154,15 +119,7 @@ YOUR_API_KEY_GOES_HERE
 
 with your PlateNet API key.
 
-The resource must remain named:
-
-```text
-platenet
-```
-
-After saving `server.cfg`, restart the server.
-
-## Basic resource configuration
+## Configure PlateNet
 
 Open:
 
@@ -170,13 +127,10 @@ Open:
 config.lua
 ```
 
-Set your PlateNet community slug and any defaults you want to change.
-
-Example:
+Set your community slug:
 
 ```lua
 Config.CommunitySlug = 'your-community'
-Config.TabletKey = 'F6'
 ```
 
-The keybind can still be changed by each player through FiveM's in-game key binding settings.
+Change any other defaults you want, then restart the server.
