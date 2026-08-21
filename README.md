@@ -29,7 +29,7 @@ Complete **Appendix A - Server Configuration** at the bottom of this README.
 
 ### 3. Start PlateNet
 
-Start or restart your server after saving the configuration.
+START or RESTART your server after saving the configuration.
 
 ---
 
