@@ -187,9 +187,6 @@ local function beginPairing(src)
     end)
 end
 
-local lastTablet = {}
-local TABLET_CACHE_MS = 10000
-
 local tabletPending = {}
 
 local function openTabletFor(src, isRetry)
@@ -216,7 +213,6 @@ local function openTabletFor(src, isRetry)
         if not ok then
             if PlateNetNeedsRepair(data, status) then
                 PlateNetClearSession(src)
-                lastTablet[src] = nil
                 if not isRetry then
 
                     PlateNetAttemptResume(src, function(resumed, resumeData, resumeStatus)
@@ -246,12 +242,6 @@ local function openTabletFor(src, isRetry)
             ),
             callsign = data.callsign,
         }
-        lastTablet[src] = {
-            payload = payload,
-            at = GetGameTimer(),
-            license = expectedLicense,
-            token = expectedToken,
-        }
         TriggerClientEvent('platenet:openTablet', src, payload)
     end)
 end
@@ -261,17 +251,6 @@ RegisterNetEvent('platenet:requestTablet', function()
     if not allowClientAction(src, 'tablet', 2000) then return end
 
     local session = PlateNetGetSession(src)
-    local cached = lastTablet[src]
-    if cached then
-        if session and cached.license == session.license and cached.token == session.token
-            and (GetGameTimer() - cached.at) < TABLET_CACHE_MS then
-            TriggerClientEvent('platenet:openTablet', src, cached.payload)
-            return
-        end
-
-        lastTablet[src] = nil
-    end
-
     if session then
         openTabletFor(src, false)
         return
@@ -449,7 +428,6 @@ AddEventHandler('playerDropped', function()
     pairPending[src] = nil
     pairNextAllowed[src] = nil
     pairLaunch[src] = nil
-    lastTablet[src] = nil
     tabletPending[src] = nil
     local plateSuffix = ':' .. tostring(src)
     for key in pairs(plateWindows) do

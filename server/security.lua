@@ -3,7 +3,7 @@ PlateNetSecurity = {
 	-- Use the exact FiveM resource folder name and set it to true.
     PlateScanners = {
 	
-	['resource_name'] = true,
+	['resource_name'] = false,
 	
     },
 
@@ -11,7 +11,7 @@ PlateNetSecurity = {
 	-- Use the exact FiveM resource folder name and set it to true.
     AlertChecks = {
 	
-	['resource_name'] = true,
+	['resource_name'] = false,
 	
     },
 }

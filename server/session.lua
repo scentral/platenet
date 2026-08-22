@@ -1,5 +1,3 @@
-
-
 local sessions = {}
 
 function PlateNetIdentifier(src)

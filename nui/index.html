@@ -153,10 +153,10 @@ iframe {
 
     let loadedUrl = '';
     let closedAt = 0;
+    let gateNeedsReload = false;
     let layout = {scale: 1, x: 0, y: 0};
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-    const canon = url => url.replace(/#.*$/, '');
 
     const applyLayout = () => {
         layout.scale = clamp(Number(layout.scale) || 1, 0.65, 3.0);
@@ -208,18 +208,22 @@ iframe {
     });
 
     window.addEventListener('message', event => {
-        if (frame.contentWindow && event.source === frame.contentWindow) return;
-
         const data = event.data || {};
 
+        if (frame.contentWindow && event.source === frame.contentWindow) {
+            if (typeof data.platenetGate === 'boolean') gateNeedsReload = data.platenetGate;
+            return;
+        }
+
         if (data.action === 'open') {
+            wrap.classList.add('is-open');
             if (typeof data.url === 'string' && /^https?:\/\//i.test(data.url)) {
                 const stale = closedAt && (Date.now() - closedAt) > staleAfterMs;
-                if (canon(data.url) !== loadedUrl || stale) {
+                if (loadedUrl === '' || stale || gateNeedsReload) {
                     frame.src = data.url;
-                    loadedUrl = canon(data.url);
+                    loadedUrl = data.url;
+                    gateNeedsReload = false;
                 }
-                wrap.classList.add('is-open');
             }
             return;
         }
@@ -233,7 +237,9 @@ iframe {
 
         if (data.action === 'settings' && data.open) {
             settings.classList.add('is-open');
+            return;
         }
+
     });
 
     document.addEventListener('keyup', event => {
@@ -245,6 +251,21 @@ iframe {
             }).catch(() => {});
         }
     });
+
+    let readyAttempts = 0;
+    const announceReady = () => {
+        readyAttempts += 1;
+        fetch(`https://${window.GetParentResourceName ? GetParentResourceName() : 'platenet'}/ready`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: '{}'
+        }).then(response => {
+            if (!response.ok && readyAttempts < 4) setTimeout(announceReady, 500);
+        }).catch(() => {
+            if (readyAttempts < 4) setTimeout(announceReady, 500);
+        });
+    };
+    announceReady();
 })();
 </script>
 </body>

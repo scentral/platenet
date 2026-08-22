@@ -3,9 +3,9 @@ game 'gta5'
 lua54 'yes'
 
 name 'platenet'
-description 'PlateNet CAD/MDT | www.platenet.app'
+description 'PlateNet CAD-MDT | www.PlateNet.app'
 author 'scentral'
-version '1.8.0'
+version '1.8.3'
 shared_script 'config.lua'
 
 client_scripts {
