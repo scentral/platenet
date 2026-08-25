@@ -7,6 +7,8 @@
 
 </div>
 
+## For fictional roleplay use only.
+
 ---
 
 ## Install
