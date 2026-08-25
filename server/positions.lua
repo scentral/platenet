@@ -47,7 +47,12 @@ RegisterNetEvent('platenet:street', function(street)
 end)
 
 local function speedFor(ped)
-    local v = GetEntityVelocity(ped)
+    local entity = ped
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    if vehicle and vehicle ~= 0 then
+        entity = vehicle
+    end
+    local v = GetEntityVelocity(entity)
     local mps = math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
     if Config.SpeedUnit == 'kmh' then
         return mps * MPS_TO_KMH

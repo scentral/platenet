@@ -73,6 +73,36 @@ Once approved, open the tablet and use PlateNet normally.
 
 ---
 
+## Report an emergency
+
+Anyone on the server can use this, no tablet pairing is required.
+
+```text
+/911 leo <what is happening>
+/911 fire <what is happening>
+/911 ems <what is happening>
+```
+
+Choose a service: `leo`, `fire` or `ems`. The call is refused without
+one. Your street and area are attached automatically. One call per
+player every 5 minutes by default (`Config.EmergencyCooldownSeconds`).
+
+---
+
+## Signal 100
+
+```text
+/panic
+```
+
+This is for Patrol Units and Dispatchers only, after a tablet is paired.
+Default is one per minute.
+(`Config.PanicCooldownSeconds`).
+
+Set either command to `false` in `Config.Commands` to disable it.
+
+---
+
 ## Move or resize the tablet
 
 Use:

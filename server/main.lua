@@ -408,6 +408,85 @@ exports('ScanPlate', function(src, plate, cb)
     return plateRequest('scan_plate', src, plate, cb, caller)
 end)
 
+local SERVICES = {LEO = true, FIRE = true, EMS = true}
+
+local function cleanText(value, limit)
+    if type(value) ~= 'string' then return '' end
+    value = value:gsub('%c', ' '):gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')
+    if #value > limit then value = value:sub(1, limit) end
+    return value
+end
+
+RegisterNetEvent('platenet:emergency', function(service, description, location)
+    local src = source
+    local cooldown = tonumber(Config.EmergencyCooldownSeconds) or 60
+    if cooldown < 5 then cooldown = 5 end
+    if not allowClientAction(src, 'emergency', cooldown * 1000) then
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: you have already reported an emergency. Wait a moment.')
+        return
+    end
+
+    description = cleanText(description, 300)
+    if description == '' then
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: say what is happening.')
+        return
+    end
+
+    service = cleanText(service, 8):upper()
+    if not SERVICES[service] then
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: choose leo, fire or ems.')
+        return
+    end
+
+    PlateNetRequest('emergency', {
+        description = description,
+        service = service,
+        call_type = '911 CALL',
+        location = cleanText(location, 96),
+        caller_name = cleanText(GetPlayerName(src) or '', 32),
+        player_identifier = PlateNetIdentifier(src) or '',
+    }, nil, function(ok)
+        if ok then
+            TriggerClientEvent('platenet:notify', src, 'PlateNet: your call has been passed to dispatch.')
+        else
+            TriggerClientEvent('platenet:notify', src, 'PlateNet: your call could not be sent. Try again.')
+        end
+    end)
+end)
+
+RegisterNetEvent('platenet:panic', function(location)
+    local src = source
+    local session = PlateNetGetSession(src)
+    if not session then
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: pair your tablet before using a panic.')
+        return
+    end
+
+    local cooldown = tonumber(Config.PanicCooldownSeconds) or 30
+    if cooldown < 5 then cooldown = 5 end
+    if not allowClientAction(src, 'panic', cooldown * 1000) then
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: a panic is already out for you.')
+        return
+    end
+
+    PlateNetRequest('panic', {
+        callsign = session.callsign or '',
+        location = cleanText(location, 96),
+        player_name = GetPlayerName(src) or '',
+        game_identifier = PlateNetIdentifier(src) or '',
+    }, session.token, function(ok, data, status)
+        if ok then
+            TriggerClientEvent('platenet:notify', src, 'PlateNet: SIGNAL 100 SENT.')
+            return
+        end
+        if status == 403 then
+            TriggerClientEvent('platenet:notify', src, 'PlateNet: this command is not available.')
+            return
+        end
+        TriggerClientEvent('platenet:notify', src, 'PlateNet: the panic could not be sent. Try again.')
+    end)
+end)
+
 AddEventHandler('playerJoining', function()
     local src = source
     CreateThread(function()
