@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -95,6 +96,12 @@ iframe {
 #settings button:hover {
     background: #263241;
 }
+#animToggle {
+    width: 100%;
+}
+#animToggle[hidden] {
+    display: none;
+}
 #scaleValue {
     min-width: 52px;
     text-align: center;
@@ -102,6 +109,177 @@ iframe {
 }
 #done {
     min-width: 74px !important;
+}
+#cards {
+    position: fixed;
+    top: 2.5vh;
+    right: 1.2vw;
+    z-index: 2000;
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+.pn-card {
+    display: grid;
+    grid-template-columns: 4px 1fr;
+    overflow: hidden;
+    border: 1px solid #3a3a3a;
+    background: rgba(36, 36, 36, 0.96);
+    color: #e8e8e8;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    line-height: 1.35;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.pn-card.is-shown {
+    opacity: 1;
+    transform: none;
+}
+.pn-card.pn-p0 { --p: #c03030; --p-ink: #ffffff; }
+.pn-card.pn-p1 { --p: #9c1d1d; --p-ink: #ffffff; }
+.pn-card.pn-p2 { --p: #b8860b; --p-ink: #171200; }
+.pn-card.pn-p3 { --p: #2e7d3a; --p-ink: #ffffff; }
+.pn-card.pn-p4 { --p: #4d5560; --p-ink: #e3eaf0; }
+.pn-card.is-assigned { --p: #4a88c0; --p-ink: #ffffff; }
+.pn-card-bar {
+    grid-row: 1 / span 3;
+    background: var(--p);
+}
+.pn-card-head {
+    position: relative;
+    grid-column: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 9px;
+    overflow: hidden;
+    background: var(--p);
+    color: var(--p-ink);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.pn-card-head > span {
+    position: relative;
+    white-space: nowrap;
+}
+.pn-card-drain {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: rgba(0, 0, 0, 0.35);
+}
+.pn-card.is-panic .pn-card-head {
+    animation: pn-pulse 1s steps(1) infinite;
+}
+@keyframes pn-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.pn-card-body {
+    grid-column: 2;
+    padding: 7px 9px;
+}
+.pn-card-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.pn-card-row + .pn-card-row {
+    margin-top: 4px;
+}
+.pn-card-type {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+}
+.pn-card-loc {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #a0a0a0;
+}
+.pn-card-loc b {
+    color: #e8e8e8;
+    font-weight: 600;
+}
+.pn-card-age,
+.pn-card-dept {
+    color: #a0a0a0;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.pn-card-units {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e8e8e8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pn-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border: 1px solid #3a3a3a;
+    background: #1a1a1a;
+    color: #a0a0a0;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 14px;
+    white-space: nowrap;
+}
+.pn-badge.red { color: #ff9a9a; border-color: #743b3b; }
+.pn-badge.amber { color: #efc55e; border-color: #6e5928; }
+.pn-badge.green { color: #83cc90; border-color: #386e46; }
+.pn-badge.blue { color: #9fc3e6; border-color: #3d5a77; }
+.pn-card-foot {
+    grid-column: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 9px;
+    border-top: 1px solid #3a3a3a;
+    font-size: 11px;
+    color: #a1a1a1;
+}
+.pn-card-foot > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pn-card-foot > span:last-child {
+    flex: 0 0 auto;
+}
+.pn-card-case {
+    margin-right: 8px;
+}
+.pn-key {
+    display: inline-block;
+    padding: 0 6px;
+    border: 1px solid #444444;
+    background: #1a1a1a;
+    color: #e8e8e8;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
 }
 @media (max-width: 900px), (max-height: 650px) {
     #wrap {
@@ -122,6 +300,7 @@ iframe {
     </div>
     <div id="hint">ESC to close</div>
 </div>
+<div id="cards"></div>
 <div id="settings">
     <div class="row">
         <button type="button" data-action="scale-down">−</button>
@@ -133,6 +312,9 @@ iframe {
         <button type="button" data-action="up">↑</button>
         <button type="button" data-action="down">↓</button>
         <button type="button" data-action="right">→</button>
+    </div>
+    <div class="row">
+        <button type="button" id="animToggle" data-action="anim" hidden>Animation: On</button>
     </div>
     <div class="row">
         <button type="button" data-action="reset">Reset</button>
@@ -148,6 +330,7 @@ iframe {
     const frame = document.getElementById('frame');
     const settings = document.getElementById('settings');
     const scaleValue = document.getElementById('scaleValue');
+    const animToggle = document.getElementById('animToggle');
     const storageKey = 'platenet_tablet_layout';
     const staleAfterMs = 10 * 60 * 1000;
 
@@ -191,6 +374,11 @@ iframe {
 
         const action = button.dataset.action;
 
+        if (action === 'anim') {
+            nuiPost('tabletAnim').then(showAnim);
+            return;
+        }
+
         if (action === 'scale-down') layout.scale -= 0.05;
         if (action === 'scale-up') layout.scale += 0.05;
         if (action === 'left') layout.x -= 20;
@@ -207,13 +395,143 @@ iframe {
         saveLayout();
     });
 
+    const cardsBox = document.getElementById('cards');
+    const liveCards = new Map();
+    const maxCards = 3;
+    const cardKinds = {call: 'NEW CALL', overdue: 'NEEDS A UNIT', assigned: 'ASSIGNED TO YOU'};
+
+    const element = (tag, className, text) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    };
+
+    const removeCard = card => {
+        if (!card || !liveCards.has(card.id)) return;
+        liveCards.delete(card.id);
+        clearTimeout(card.timer);
+        card.node.classList.remove('is-shown');
+        setTimeout(() => card.node.remove(), 250);
+    };
+
+    const showCard = data => {
+        const id = Number(data.id);
+        if (!Number.isFinite(id)) return;
+        removeCard(liveCards.get(id));
+
+        const priority = Math.max(0, Math.min(4, Number(data.priority) || 0));
+        const panic = priority === 0 && data.kind !== 'assigned';
+        const duration = Math.max(3000, Math.min(60000, Number(data.duration) || 15000));
+
+        const assigned = data.kind === 'assigned';
+        const node = element('div', 'pn-card pn-p' + priority + (panic ? ' is-panic' : '') + (assigned ? ' is-assigned' : ''));
+        const head = element('div', 'pn-card-head');
+        const fill = element('div', 'pn-card-drain');
+        head.append(
+            fill,
+            element('span', '', panic ? 'PANIC' : (cardKinds[data.kind] || 'NEW CALL')),
+            element('span', '', 'P' + priority + ' · ' + String(data.service || 'OTHER'))
+        );
+
+        const body = element('div', 'pn-card-body');
+        const row1 = element('div', 'pn-card-row');
+        row1.append(
+            element('span', 'pn-badge ' + (priority <= 1 ? 'red' : priority === 2 ? 'amber' : 'green'), 'P' + priority),
+            element('span', 'pn-card-type', String(data.call_type || 'CALL')),
+            element('span', 'pn-badge ' + (assigned ? 'blue' : panic ? 'green' : 'amber'), assigned ? 'YOUR CALL' : panic ? 'ACTIVE' : 'PENDING')
+        );
+        const row2 = element('div', 'pn-card-row');
+        const loc = element('span', 'pn-card-loc');
+        if (data.postal) loc.append(element('b', '', String(data.postal)), document.createTextNode(' · '));
+        loc.append(document.createTextNode(String(data.location || '')));
+        row2.append(loc, element('span', 'pn-card-age', String(Math.max(0, Number(data.age) || 0)) + 'M'));
+        const need = Math.max(0, Number(data.need) || 0);
+        const unitsText = data.units ? String(data.units) : (panic ? 'ALL UNITS' : need > 0 ? 'NEEDS ' + need + (need === 1 ? ' UNIT' : ' UNITS') : '');
+        const row3 = element('div', 'pn-card-row');
+        row3.append(element('span', 'pn-card-dept', String(data.department || data.service || '')), element('span', 'pn-card-units', unitsText));
+        body.append(row1, row2, row3);
+
+        const foot = element('div', 'pn-card-foot');
+        const hint = element('span', '');
+        if (data.respond_key) {
+            hint.append(element('span', 'pn-key', String(data.respond_key)), document.createTextNode(' respond'));
+        } else {
+            hint.textContent = String(data.routed || '');
+        }
+        const right = element('span', '');
+        if (data.case_number) right.append(element('span', 'pn-card-case', '#' + String(data.case_number)));
+        right.append(element('span', 'pn-key', String(data.tablet_key || 'F6')), document.createTextNode(' PlateNet'));
+        foot.append(hint, right);
+
+        node.append(element('div', 'pn-card-bar'), head, body, foot);
+        cardsBox.prepend(node);
+
+        const card = {id, node, hint, timer: null};
+        liveCards.set(id, card);
+        while (liveCards.size > maxCards) {
+            removeCard(liveCards.values().next().value);
+        }
+
+        requestAnimationFrame(() => {
+            node.classList.add('is-shown');
+            fill.style.transition = 'width ' + duration + 'ms linear';
+            requestAnimationFrame(() => { fill.style.width = '100%'; });
+        });
+        card.timer = setTimeout(() => removeCard(card), duration);
+    };
+
+    const resourceName = window.GetParentResourceName ? GetParentResourceName() : 'platenet';
+
+    function showAnim(state) {
+        if (!state || typeof state !== 'object') return;
+        animToggle.hidden = state.allowed === false;
+        animToggle.textContent = 'Animation: ' + (state.on ? 'On' : 'Off');
+    }
+    const maxRadioAudio = 2000000;
+
+    const frameOrigin = () => {
+        try {
+            return new URL(loadedUrl).origin;
+        } catch (_) {
+            return '';
+        }
+    };
+
+    const nuiPost = (name, body) => fetch(`https://${resourceName}/${name}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body || {})
+    }).then(response => response.json()).catch(() => ({}));
+
+    const handleRadio = (data, origin) => {
+        const id = data.platenetRadio;
+        if (!/^pn-radio-\d+-\d+$/.test(id) || origin !== frameOrigin()) return;
+        let request;
+        if (data.action === 'status') {
+            request = nuiPost('radioStatus').then(result => ({on: !!(result && result.on)}));
+        } else if (data.action === 'play' && typeof data.audio === 'string' && data.audio !== '' && data.audio.length <= maxRadioAudio) {
+            request = nuiPost('radioPlay', {audio: data.audio}).then(result => ({ok: !!(result && result.ok)}));
+        } else {
+            return;
+        }
+        request.then(reply => {
+            try {
+                frame.contentWindow.postMessage(Object.assign({platenetRadioReply: id}, reply), origin);
+            } catch (_) {}
+        });
+    };
+
     window.addEventListener('message', event => {
         const data = event.data || {};
 
         if (frame.contentWindow && event.source === frame.contentWindow) {
             if (typeof data.platenetGate === 'boolean') gateNeedsReload = data.platenetGate;
+            if (typeof data.platenetRadio === 'string') handleRadio(data, event.origin);
             return;
         }
+
+        if (event.source && event.source !== window && event.source !== window.parent) return;
 
         if (data.action === 'open') {
             wrap.classList.add('is-open');
@@ -236,7 +554,24 @@ iframe {
         }
 
         if (data.action === 'settings' && data.open) {
+            showAnim({allowed: data.animAllowed, on: data.anim});
             settings.classList.add('is-open');
+            return;
+        }
+
+        if (data.action === 'card' && data.card && typeof data.card === 'object') {
+            showCard(data.card);
+            return;
+        }
+
+        if (data.action === 'cardUpdate') {
+            const card = liveCards.get(Number(data.id));
+            if (card && typeof data.text === 'string') card.hint.textContent = data.text;
+            return;
+        }
+
+        if (data.action === 'cardsClear') {
+            liveCards.forEach(card => removeCard(card));
             return;
         }
 

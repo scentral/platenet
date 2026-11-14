@@ -1,117 +1,4 @@
-local VERSION_URL = tostring(Config.UpdateUrl or ''):gsub('^%s+', ''):gsub('%s+$', '')
-local updateState = 'checking'
-local latestVersion = nil
-local updateWaiters = {}
-
-local function cleanVersion(value)
-    value = tostring(value or ''):gsub('^%s+', ''):gsub('%s+$', ''):gsub('^[vV]', '')
-    if not value:match('^%d+%.%d+%.%d+$') then return nil end
-    return value
-end
-
-local function versionParts(value)
-    local a, b, c = value:match('^(%d+)%.(%d+)%.(%d+)$')
-    if not a then return nil end
-    return tonumber(a), tonumber(b), tonumber(c)
-end
-
-local function versionOlder(current, latest)
-    local ca, cb, cc = versionParts(current)
-    local la, lb, lc = versionParts(latest)
-    if not ca or not la then return true end
-    if ca ~= la then return ca < la end
-    if cb ~= lb then return cb < lb end
-    return cc < lc
-end
-
-local function finishVersionCheck(ok, latest)
-    if updateState ~= 'checking' then return end
-
-    updateState = ok and 'ready' or 'blocked'
-    latestVersion = latest
-
-    local pending = updateWaiters
-    updateWaiters = {}
-
-    for _, cb in ipairs(pending) do
-        cb(ok, latestVersion)
-    end
-
-    if not ok then
-        SetTimeout(0, function()
-            StopResource(GetCurrentResourceName())
-        end)
-    end
-end
-
-function PlateNetRequireCurrentVersion(cb)
-    if updateState == 'ready' then
-        cb(true, latestVersion)
-        return
-    end
-
-    if updateState == 'blocked' then
-        cb(false, latestVersion)
-        return
-    end
-
-    updateWaiters[#updateWaiters + 1] = cb
-end
-
-CreateThread(function()
-    local current = cleanVersion(GetResourceMetadata(GetCurrentResourceName(), 'version', 0))
-
-    if not current then
-        print('^1[platenet] Invalid resource version. PlateNet stopped.^7')
-        finishVersionCheck(false, nil)
-        return
-    end
-
-    if VERSION_URL == '' then
-        finishVersionCheck(true, current)
-        return
-    end
-
-    local completed = false
-
-    SetTimeout(15000, function()
-        if not completed and updateState == 'checking' then
-            completed = true
-            print('^1[platenet] Unable to check for updates. PlateNet stopped.^7')
-            finishVersionCheck(false, nil)
-        end
-    end)
-
-    PerformHttpRequest(VERSION_URL, function(status, body)
-        if completed or updateState ~= 'checking' then return end
-        completed = true
-
-        if status ~= 200 then
-            print('^1[platenet] Unable to check for updates. PlateNet stopped.^7')
-            finishVersionCheck(false, nil)
-            return
-        end
-
-        local latest = cleanVersion(body)
-        if not latest then
-            print('^1[platenet] Invalid update version. PlateNet stopped.^7')
-            finishVersionCheck(false, nil)
-            return
-        end
-
-        if versionOlder(current, latest) then
-            print(('^1[platenet] Update required: %s. PlateNet stopped.^7'):format(latest))
-            finishVersionCheck(false, latest)
-            return
-        end
-
-        print(('^2[platenet] Version %s is current.^7'):format(current))
-        finishVersionCheck(true, latest)
-    end, 'GET', '', {
-        ['Accept'] = 'text/plain',
-        ['Cache-Control'] = 'no-cache',
-    })
-end)
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
 
 local API_KEY_HEADER = 'X-PlateNet-Game-Key'
 local SERVER_TOKEN_HEADER = 'X-PlateNet-Server-Token'
@@ -126,6 +13,25 @@ local serverTokenRefreshAt = 0
 local authInFlight = false
 local authWaiters = {}
 local authGeneration = 0
+local communitySlug = ''
+local cadEnabled = true
+local cadOffNoted = false
+
+local CAD_OFF_ERROR = 'CAD is not turned on for this community.'
+
+local function setCadEnabled(enabled)
+    cadEnabled = enabled
+    if enabled then
+        cadOffNoted = false
+    elseif not cadOffNoted then
+        cadOffNoted = true
+        print('^1[PlateNet CAD] CAD is not turned on for this community. Contact PlateNet.^7')
+    end
+end
+
+function PlateNetCadEnabled()
+    return cadEnabled
+end
 
 local bootstrapApiKey = GetConvar('platenet_api_key', '')
 
@@ -144,27 +50,71 @@ function PlateNetGameUrlTrusted(url)
     return false
 end
 
-local globalWindow = {started = 0, count = 0}
-local GLOBAL_LIMIT_PER_MIN = 300
+local LANES = {
+    priority = {limit = 150, started = 0, count = 0},
+    general = {limit = 250, started = 0, count = 0},
+    plates = {limit = 150, started = 0, count = 0},
+}
+local PRIORITY_ACTIONS = {panic = true, emergency = true, positions = true, logoff = true, flagged_plates = true}
+local PLATE_ACTIONS = {scan_plate = true, plate_alert = true}
+local PLAYER_LIMIT_PER_MIN = 13
+local playerWindows = {}
+local laneFull = {}
 
-local function allowGlobalRequest()
+local function laneFor(action)
+    if PRIORITY_ACTIONS[action] then return 'priority' end
+    if PLATE_ACTIONS[action] then return 'plates' end
+    return 'general'
+end
+
+local function allowGlobalRequest(laneName)
+    local lane = LANES[laneName] or LANES.general
     local now = GetGameTimer()
-    if now - globalWindow.started >= 60000 then
-        globalWindow.started = now
-        globalWindow.count = 0
+    if now - lane.started >= 60000 then
+        lane.started = now
+        lane.count = 0
     end
-    if globalWindow.count >= GLOBAL_LIMIT_PER_MIN then
+    if lane.count >= lane.limit then
+        laneFull[laneName] = (laneFull[laneName] or 0) + 1
         return false
     end
-    globalWindow.count = globalWindow.count + 1
+    lane.count = lane.count + 1
     return true
 end
+
+function PlateNetTakeLaneReport()
+    if next(laneFull) == nil then return nil end
+    local report = laneFull
+    laneFull = {}
+    return report
+end
+
+function PlateNetAllowPlayer(src)
+    src = tonumber(src)
+    if not src then return false end
+    local now = GetGameTimer()
+    local w = playerWindows[src]
+    if not w or now - w.started >= 60000 then
+        w = {started = now, count = 0}
+        playerWindows[src] = w
+    end
+    if w.count >= PLAYER_LIMIT_PER_MIN then
+        laneFull.player = (laneFull.player or 0) + 1
+        return false
+    end
+    w.count = w.count + 1
+    return true
+end
+
+AddEventHandler('playerDropped', function()
+    playerWindows[tonumber(source)] = nil
+end)
 
 local function warnGlobalLimit()
     local now = GetGameTimer()
     if now - lastGlobalWarning > 60000 then
         lastGlobalWarning = now
-        print('^3[platenet] Too many requests. Try again shortly.^7')
+        print('^3[PlateNet CAD] Too many requests. Try again shortly.^7')
     end
 end
 
@@ -174,7 +124,7 @@ local function transportReady(cb)
         local now = GetGameTimer()
         if now - lastKeyWarning > 60000 then
             lastKeyWarning = now
-            print('^1[platenet] Setup required: add platenet_api_key to server.cfg.^7')
+            print('^1[PlateNet CAD] Setup required: add platenet_api_key to server.cfg.^7')
         end
         if cb then cb(false, 'PlateNet setup is incomplete.') end
         return false, 'PlateNet setup is incomplete.'
@@ -184,7 +134,7 @@ local function transportReady(cb)
         local now = GetGameTimer()
         if now - lastUrlWarning > 60000 then
             lastUrlWarning = now
-            print('^1[platenet] Setup required: Config.GameUrl must use HTTPS.^7')
+            print('^1[PlateNet CAD] Setup required: Config.GameUrl must use HTTPS.^7')
         end
         if cb then cb(false, 'PlateNet setup is incomplete.') end
         return false, 'PlateNet setup is incomplete.'
@@ -238,7 +188,7 @@ local function ensureServerAuthentication(cb, force)
     end
     local apiKey = apiKeyOrError
 
-    if not allowGlobalRequest() then
+    if not allowGlobalRequest('priority') then
         warnGlobalLimit()
         finishAuthentication(false, nil, nil, 'PlateNet is busy. Try again.')
         return
@@ -250,7 +200,7 @@ local function ensureServerAuthentication(cb, force)
         ['Accept'] = 'application/json',
         [API_KEY_HEADER] = apiKey,
     }
-    local body = json.encode({community_slug = Config.CommunitySlug})
+    local body = json.encode({community_slug = '', resource_version = GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or ''})
 
     PerformHttpRequest(url, function(status, responseBody, _responseHeaders)
         if authGeneration ~= watchdogGeneration then return end
@@ -266,6 +216,8 @@ local function ensureServerAuthentication(cb, force)
             return
         end
 
+        communitySlug = type(data.community_slug) == 'string' and data.community_slug or ''
+        setCadEnabled(not (type(data.products) == 'table' and data.products.cad == false))
         finishAuthentication(true, data.server_token, data.refresh_after, nil)
     end, 'POST', body, headers)
 end
@@ -285,7 +237,6 @@ end
 
 function PlateNetRequest(action, payload, sessionToken, cb)
     payload = payload or {}
-    payload.community_slug = Config.CommunitySlug
 
     local function dispatch(retried)
         ensureServerAuthentication(function(authOk, authError)
@@ -296,7 +247,16 @@ function PlateNetRequest(action, payload, sessionToken, cb)
                 return
             end
 
-            if not allowGlobalRequest() then
+            if not cadEnabled then
+                if cb then
+                    cb(false, {success = false, error = CAD_OFF_ERROR, product = 'cad'}, 403)
+                end
+                return
+            end
+
+            payload.community_slug = communitySlug
+
+            if not allowGlobalRequest(laneFor(action)) then
                 warnGlobalLimit()
                 if cb then
                     cb(false, {success = false, error = 'PlateNet is busy. Try again.'}, 0)
@@ -328,6 +288,10 @@ function PlateNetRequest(action, payload, sessionToken, cb)
                     serverTokenRefreshAt = 0
                     dispatch(true)
                     return
+                end
+
+                if status == 403 and data.product == 'cad' then
+                    setCadEnabled(false)
                 end
 
                 if status ~= 200 or data.success == false then

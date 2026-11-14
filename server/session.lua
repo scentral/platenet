@@ -1,3 +1,5 @@
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
+
 local sessions = {}
 
 function PlateNetIdentifier(src)

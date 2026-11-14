@@ -1,11 +1,6 @@
-<div align="center">
-
 # PlateNet CAD/MDT Tablet for FiveM
 
-[![PlateNet](https://img.shields.io/badge/PlateNet-platenet.app-111827?style=for-the-badge)](https://platenet.app/)
-[![Discord](https://img.shields.io/badge/Discord-Join%20PlateNet-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Mpn6SwhXeW)
-
-</div>
+https://platenet.app
 
 ## For fictional roleplay use only.
 
@@ -117,13 +112,77 @@ Use the on-screen controls to move the tablet, increase or decrease its size, re
 
 ---
 
+## Tablet animation
+
+When you open the tablet on foot, your character holds a tablet. In a vehicle there is no animation.
+
+Turn it off for yourself, or back on, with the Animation button in `/platenet set` or:
+
+```text
+/platenet anim
+```
+
+Turn it off for this server with `Config.TabletAnimation = false` in `config.lua`.
+
+---
+
+## Call alerts
+
+Paired units get a card in the top right of the screen for 15 seconds:
+
+- **NEW CALL** - a call that still needs units, for your department or with no department. Calls a unit
+  makes for themselves do not show.
+- **PANIC** - every Signal 100, for every unit and dispatcher except the one who raised it.
+- **ASSIGNED TO YOU** - you were put on a call. A waypoint is set when the call has a map position.
+- **NEEDS A UNIT** - while a dispatcher is on duty, a call nobody picked up in time.
+
+While a dispatcher is on duty, NEW CALL cards do not show; the dispatcher assigns units.
+
+Press **F9** on a card to respond: you are put on the call and a waypoint is set. A Signal 100 takes any
+number of units. Other calls take the number of units they need; after that the card says who has it, and
+you attach in the tablet. While a dispatcher is on duty, F9 sets the waypoint and the dispatcher assigns
+units. Change the key in Settings > Key Bindings > FiveM ("PlateNet: respond to a call").
+
+Turn alerts off for yourself, or back on:
+
+```text
+/platenet alerts
+```
+
+Turn them off for the community in the Community Panel under **GAME SERVER LINK**, or for this server with
+`Config.CallAlerts = false` in `config.lua`.
+
+---
+
+## Player access
+
+Other resources can read a paired player's CAD access: their callsign, whether they have patrol,
+dispatch or supervisor access, and their departments.
+
+PlateNet Radio (`platenet-radio`) is allowed by default. Allow any other resource in `server/security.lua` under `PlayerAccess`, using its exact folder name:
+
+```lua
+PlayerAccess = {
+    ['your_resource'] = true,
+},
+```
+
+The resource calls:
+
+```lua
+exports.platenet:GetPlayerAccess(source, function(data) end)
+```
+
+`data.success` is false when the player has not paired their tablet. Otherwise it holds
+`callsign`, `unit`, `dispatch`, `supervisor`, `civilian` and `departments` (each with `code`, `service_type` and `primary`).
+
+---
+
 ## Help
 
 **PlateNet:** https://platenet.app/
 
 **Device pairing:** https://platenet.app/device
-
-**Discord:** https://discord.gg/Mpn6SwhXeW
 
 ---
 
@@ -149,7 +208,16 @@ Replace:
 YOUR_API_KEY_GOES_HERE
 ```
 
-with your PlateNet API key.
+with your PlateNet API key. The key finds your community.
+
+## PlateNet Radio
+
+If you also run PlateNet Radio, add these lines under the PlateNet lines:
+
+```cfg
+add_convar_permission platenet-radio read platenet_api_key
+ensure platenet-radio
+```
 
 ## Configure PlateNet
 
@@ -159,10 +227,4 @@ Open:
 config.lua
 ```
 
-Set your community slug:
-
-```lua
-Config.CommunitySlug = 'your-community'
-```
-
-Change any other defaults you want, then restart the server.
+Change any defaults you want, then restart the server.

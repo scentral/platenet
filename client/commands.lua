@@ -1,4 +1,12 @@
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
+
 local base = Config.Commands.tablet or 'platenet'
+local suggestions = {}
+local HIDDEN_COMMANDS = {'platenet_respond'}
+
+local function suggest(name, help, params)
+    suggestions[#suggestions + 1] = {name = '/' .. name, help = help, params = params}
+end
 
 RegisterCommand(base, function(_source, args)
     local sub = (args[1] or ''):lower()
@@ -13,11 +21,21 @@ RegisterCommand(base, function(_source, args)
         return
     end
 
-    PlateNetNotify(('PlateNet: /%s opens · /%s set adjusts layout'):format(base, base))
+    if sub == 'alerts' then
+        PlateNetToggleAlerts()
+        return
+    end
+
+    if sub == 'anim' then
+        PlateNetToggleTabletAnim()
+        return
+    end
+
+    PlateNetNotify(('PlateNet: /%s opens · /%s set adjusts layout · /%s alerts turns call alerts on or off · /%s anim turns the tablet animation on or off'):format(base, base, base, base))
 end, false)
 
-TriggerEvent('chat:addSuggestion', '/' .. base, 'Open PlateNet', {
-    {name = 'action', help = 'set (layout)'},
+suggest(base, 'Open PlateNet', {
+    {name = 'action', help = 'set (layout), alerts (call alerts on or off) or anim (tablet animation on or off)'},
 })
 
 if Config.TabletKey then
@@ -65,7 +83,7 @@ if emergencyCommand then
         TriggerServerEvent('platenet:emergency', service, description, hereNow())
     end, false)
 
-    TriggerEvent('chat:addSuggestion', '/' .. emergencyCommand, 'Report an emergency to dispatch', {
+    suggest(emergencyCommand, 'Report an emergency to dispatch', {
         {name = 'service', help = 'leo, fire or ems'},
         {name = 'details', help = 'what is happening'},
     })
@@ -77,5 +95,24 @@ if panicCommand then
         TriggerServerEvent('platenet:panic', hereNow())
     end, false)
 
-    TriggerEvent('chat:addSuggestion', '/' .. panicCommand, 'Signal 100')
+    suggest(panicCommand, 'Signal 100')
 end
+
+local function tidyChat()
+    for _, name in ipairs(HIDDEN_COMMANDS) do
+        TriggerEvent('chat:removeSuggestion', '/' .. name)
+    end
+    for _, item in ipairs(suggestions) do
+        TriggerEvent('chat:removeSuggestion', item.name)
+        TriggerEvent('chat:addSuggestion', item.name, item.help, item.params)
+    end
+end
+
+AddEventHandler('onClientResourceStart', function()
+    SetTimeout(1500, tidyChat)
+end)
+
+CreateThread(function()
+    Wait(1500)
+    tidyChat()
+end)

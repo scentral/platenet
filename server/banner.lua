@@ -1,3 +1,5 @@
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
+
 local BANNER = [[
 ==================================================
 ==================================================
@@ -42,5 +44,4 @@ AddEventHandler('onResourceStart', function(resource)
     for line in BANNER:gmatch('([^\n]*)\n?') do
         print(line)
     end
-    print(('[platenet] v%s ready.'):format(GetResourceMetadata(resource, 'version', 0) or '?'))
 end)

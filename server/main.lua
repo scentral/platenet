@@ -1,3 +1,5 @@
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
+
 if GetCurrentResourceName() ~= 'platenet' then
     error('Rename this resource folder to "platenet".')
 end
@@ -9,27 +11,25 @@ CreateThread(function()
         local ready = true
 
         if not PlateNetBootstrapKeyConfigured() then
-            print('^1[platenet] Setup required: add platenet_api_key to server.cfg.^7')
-            ready = false
-        end
-        if not Config.CommunitySlug or Config.CommunitySlug == '' or Config.CommunitySlug == 'your-community' then
-            print('^1[platenet] Setup required: set Config.CommunitySlug in config.lua.^7')
+            print('^1[PlateNet CAD] Setup required: add platenet_api_key to server.cfg.^7')
             ready = false
         end
         if not Config.GameUrl or Config.GameUrl == '' then
-            print('^1[platenet] Setup required: set Config.GameUrl in config.lua.^7')
+            print('^1[PlateNet CAD] Setup required: set Config.GameUrl in config.lua.^7')
             ready = false
         elseif not PlateNetGameUrlTrusted(Config.GameUrl) then
-            print('^1[platenet] Setup required: Config.GameUrl must use HTTPS.^7')
+            print('^1[PlateNet CAD] Setup required: Config.GameUrl must use HTTPS.^7')
             ready = false
         end
 
         if ready then
             PlateNetWarmServerAuth(function(ok)
                 if ok then
-                    print('^2[platenet] Connected.^7')
+                    if PlateNetCadEnabled() then
+                        print('^2[PlateNet CAD] Connected.^7')
+                    end
                 else
-                    print('^1[platenet] Connection failed. Check the PlateNet setup.^7')
+                    print('^1[PlateNet CAD] Connection failed. Check the PlateNet setup.^7')
                 end
             end)
         end
@@ -37,14 +37,29 @@ CreateThread(function()
 end)
 
 local eventCooldowns = {}
+local cooldownPruneAt = 0
 
 local function allowClientAction(src, action, cooldownMs)
     local now = GetGameTimer()
-    eventCooldowns[src] = eventCooldowns[src] or {}
-    if now < (eventCooldowns[src][action] or 0) then
+    if now >= cooldownPruneAt then
+        cooldownPruneAt = now + 300000
+        for key, actions in pairs(eventCooldowns) do
+            local live = false
+            for _, untilAt in pairs(actions) do
+                if untilAt > now then
+                    live = true
+                    break
+                end
+            end
+            if not live then eventCooldowns[key] = nil end
+        end
+    end
+    local key = PlateNetIdentifier(src) or ('src:' .. tostring(src))
+    eventCooldowns[key] = eventCooldowns[key] or {}
+    if now < (eventCooldowns[key][action] or 0) then
         return false
     end
-    eventCooldowns[src][action] = now + cooldownMs
+    eventCooldowns[key][action] = now + cooldownMs
     return true
 end
 
@@ -95,6 +110,7 @@ function PlateNetAttemptResume(src, cb)
             resumeLastRefusal[src] = nil
             PlateNetSetSession(src, data.token, data.callsign)
             TriggerClientEvent('platenet:paired', src, data.callsign)
+            PlateNetSyncRadioId(src)
         else
             resumeNextAllowed[src] = GetGameTimer() + 8000
             if (status == 401 or status == 403) and type(data) == 'table' and type(data.error) == 'string' then
@@ -249,6 +265,7 @@ end
 RegisterNetEvent('platenet:requestTablet', function()
     local src = source
     if not allowClientAction(src, 'tablet', 2000) then return end
+    if not PlateNetAllowPlayer(src) then return end
 
     local session = PlateNetGetSession(src)
     if session then
@@ -273,8 +290,65 @@ function token_urlencode(value)
 end
 
 local plateWindows = {}
-local PLATE_LOOKUPS_PER_MIN = 60
+local PLATE_LOOKUPS_PER_MIN = 25
+local FLAGGED_REFRESH_MS = 30000
+local FLAGGED_BOLO_MIN = 4
+local flagged = nil
+local flaggedWarned = false
+
+local function compactPlate(plate)
+    return (tostring(plate or ''):upper():gsub('%s', ''))
+end
+
+local function plateFlagged(plate)
+    if not flagged then return false end
+    local compact = compactPlate(plate)
+    if compact == '' then return false end
+    if flagged.plates[compact] then return true end
+    if #compact >= FLAGGED_BOLO_MIN then
+        for _, text in ipairs(flagged.bolos) do
+            if text:find(compact, 1, true) then return true end
+        end
+    end
+    return false
+end
+
+local function refreshFlagged()
+    PlateNetRequest('flagged_plates', {}, nil, function(ok, data)
+        if not ok or type(data) ~= 'table' or type(data.plates) ~= 'table' then
+            if not flaggedWarned then
+                flaggedWarned = true
+                print('^3[PlateNet CAD] Plate reader alerts are waiting for PlateNet. Check the PlateNet connection.^7')
+            end
+            return
+        end
+        local plates = {}
+        for _, plate in ipairs(data.plates) do
+            if type(plate) == 'string' and plate ~= '' then plates[compactPlate(plate)] = true end
+        end
+        local bolos = {}
+        if type(data.bolos) == 'table' then
+            for _, text in ipairs(data.bolos) do
+                if type(text) == 'string' and text ~= '' then bolos[#bolos + 1] = compactPlate(text) end
+            end
+        end
+        flagged = {plates = plates, bolos = bolos}
+        flaggedWarned = false
+    end)
+end
+
+CreateThread(function()
+    Wait(2000)
+    while true do
+        if PlateNetCadEnabled() then refreshFlagged() end
+        Wait(FLAGGED_REFRESH_MS)
+    end
+end)
 local deniedExportWarnings = {}
+local DEFAULT_RADIO = 'platenet-radio'
+local DEFAULT_TRUST = {
+    PlayerAccess = {[DEFAULT_RADIO] = true},
+}
 
 local function invokingResourceAllowed(bucket)
     local caller = GetInvokingResource()
@@ -283,7 +357,11 @@ local function invokingResourceAllowed(bucket)
     end
     local security = type(PlateNetSecurity) == 'table' and PlateNetSecurity or {}
     local allowed = type(security[bucket]) == 'table' and security[bucket] or {}
-    return allowed[caller] == true, caller
+    if allowed[caller] ~= nil then
+        return allowed[caller] == true, caller
+    end
+    local defaults = DEFAULT_TRUST[bucket] or {}
+    return defaults[caller] == true, caller
 end
 
 local function warnDeniedExport(caller, capability)
@@ -291,7 +369,7 @@ local function warnDeniedExport(caller, capability)
     local now = GetGameTimer()
     if now >= (deniedExportWarnings[key] or 0) then
         deniedExportWarnings[key] = now + 60000
-        print(('^3[platenet] Blocked %s from %s.^7'):format(capability, tostring(caller or '<unknown>')))
+        print(('^3[PlateNet CAD] Blocked %s from %s.^7'):format(capability, tostring(caller or '<unknown>')))
     end
 end
 
@@ -337,6 +415,15 @@ local function plateRequest(action, src, plate, cb, caller)
 
         if not session then
             respond({success = false, error = 'Player is not paired.', unpaired = true})
+            return
+        end
+
+        if not plateFlagged(plate) then
+            if action == 'plate_alert' then
+                respond({success = true, alert = false})
+            else
+                respond({success = true, accepted = true})
+            end
             return
         end
 
@@ -408,6 +495,149 @@ exports('ScanPlate', function(src, plate, cb)
     return plateRequest('scan_plate', src, plate, cb, caller)
 end)
 
+local playerAccessWindows = {}
+local radioSyncWindows = {}
+local PLAYER_ACCESS_PER_MIN = 20
+local RADIO_SYNCS_PER_MIN = 10
+
+local function allowWindow(windows, src, limit)
+    local now = GetGameTimer()
+    local w = windows[src]
+    if not w or now - w.started >= 60000 then
+        w = {started = now, count = 0}
+        windows[src] = w
+    end
+    if w.count >= limit then
+        return false
+    end
+    w.count = w.count + 1
+    return true
+end
+
+local function accessRequest(src, radioId, respond)
+    local session = PlateNetGetSession(src)
+    if not session then
+        respond({success = false, error = 'Player is not paired.', unpaired = true})
+        return
+    end
+
+    local expectedToken = session.token
+
+    PlateNetRequest('radio_profile', {radio_id = radioId}, expectedToken, function(ok, data, status)
+        if type(data) ~= 'table' then data = {} end
+
+        if not ok and PlateNetNeedsRepair(data, status) then
+            local current = PlateNetGetSession(src)
+            if current and current.token == expectedToken then
+                PlateNetClearSession(src)
+            end
+            respond({success = false, error = 'Player is not paired.', unpaired = true})
+            return
+        end
+
+        if not ok or data.success == false then
+            respond({success = false, error = 'PlateNet request failed.'})
+            return
+        end
+
+        local unit = data.unit == true
+        local dispatch = data.dispatch == true
+        local supervisor = data.supervisor == true
+        respond({
+            success = true,
+            callsign = type(data.callsign) == 'string' and data.callsign or '',
+            unit = unit,
+            dispatch = dispatch,
+            supervisor = supervisor,
+            civilian = not unit and not dispatch and not supervisor,
+            departments = type(data.departments) == 'table' and data.departments or {},
+        })
+    end)
+end
+
+exports('GetPlayerAccess', function(src, cb)
+    local respond = function(data)
+        if cb then cb(data) end
+    end
+
+    local allowed, caller = invokingResourceAllowed('PlayerAccess')
+    if not allowed then
+        warnDeniedExport(caller, 'GetPlayerAccess')
+        respond({success = false, error = 'Access denied.'})
+        return true
+    end
+
+    if type(src) ~= 'number' or src <= 0 or GetPlayerName(src) == nil then
+        respond({success = false, error = 'Invalid player.'})
+        return true
+    end
+
+    local function dispatch()
+        if not allowWindow(playerAccessWindows, src, PLAYER_ACCESS_PER_MIN) then
+            respond({success = false, error = 'Rate limit reached.'})
+            return
+        end
+        accessRequest(src, '', respond)
+    end
+
+    if PlateNetGetSession(src) then
+        dispatch()
+        return true
+    end
+    PlateNetAttemptResume(src, function(resumed)
+        if not resumed then
+            respond({success = false, error = 'Player is not paired.', unpaired = true})
+            return
+        end
+        dispatch()
+    end)
+
+    return true
+end)
+
+local function linkedRadioName()
+    local security = type(PlateNetSecurity) == 'table' and PlateNetSecurity or {}
+    if type(security.LinkedRadio) == 'string' and security.LinkedRadio ~= '' then
+        return security.LinkedRadio
+    end
+    return DEFAULT_RADIO
+end
+
+local function linkedRadio()
+    local name = linkedRadioName()
+    if name == '' or GetResourceState(name) ~= 'started' then return nil end
+    return name
+end
+
+RegisterNetEvent('platenet:linkedRadio:request', function()
+    local src = source
+    if not allowClientAction(src, 'linkedRadio', 5000) then return end
+    TriggerClientEvent('platenet:linkedRadio', src, linkedRadioName())
+end)
+
+function PlateNetSyncRadioId(src)
+    local radio = linkedRadio()
+    if not radio or not PlateNetGetSession(src) then return end
+
+    local ok, value = pcall(function()
+        return exports[radio]:GetPlayerRadioId(src)
+    end)
+    if not ok then return end
+
+    local radioId = tostring(value or ''):gsub('%D', '')
+    if radioId == '' or #radioId > 8 then return end
+    if not allowWindow(radioSyncWindows, src, RADIO_SYNCS_PER_MIN) then return end
+
+    accessRequest(src, radioId, function() end)
+end
+
+AddEventHandler('platenet:radio:changed', function(src)
+    local radio = linkedRadio()
+    if not radio or GetInvokingResource() ~= radio then return end
+    if type(src) ~= 'number' or GetPlayerName(src) == nil then return end
+    PlateNetSyncRadioId(src)
+end)
+
 local SERVICES = {LEO = true, FIRE = true, EMS = true}
 
 local function cleanText(value, limit)
@@ -415,6 +645,14 @@ local function cleanText(value, limit)
     value = value:gsub('%c', ' '):gsub('%s+', ' '):gsub('^%s+', ''):gsub('%s+$', '')
     if #value > limit then value = value:sub(1, limit) end
     return value
+end
+
+local function playerPoint(src)
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then return nil, nil end
+    local coords = GetEntityCoords(ped)
+    if coords.x == 0.0 and coords.y == 0.0 then return nil, nil end
+    return coords.x, coords.y
 end
 
 RegisterNetEvent('platenet:emergency', function(service, description, location)
@@ -438,11 +676,14 @@ RegisterNetEvent('platenet:emergency', function(service, description, location)
         return
     end
 
+    local x, y = playerPoint(src)
     PlateNetRequest('emergency', {
         description = description,
         service = service,
         call_type = '911 CALL',
         location = cleanText(location, 96),
+        x = x,
+        y = y,
         caller_name = cleanText(GetPlayerName(src) or '', 32),
         player_identifier = PlateNetIdentifier(src) or '',
     }, nil, function(ok)
@@ -469,9 +710,12 @@ RegisterNetEvent('platenet:panic', function(location)
         return
     end
 
+    local x, y = playerPoint(src)
     PlateNetRequest('panic', {
         callsign = session.callsign or '',
         location = cleanText(location, 96),
+        x = x,
+        y = y,
         player_name = GetPlayerName(src) or '',
         game_identifier = PlateNetIdentifier(src) or '',
     }, session.token, function(ok, data, status)
@@ -500,7 +744,6 @@ end)
 AddEventHandler('playerDropped', function()
     local src = source
     pairWatch[src] = nil
-    eventCooldowns[src] = nil
     resumePending[src] = nil
     resumeNextAllowed[src] = nil
     resumeLastRefusal[src] = nil
@@ -508,6 +751,8 @@ AddEventHandler('playerDropped', function()
     pairNextAllowed[src] = nil
     pairLaunch[src] = nil
     tabletPending[src] = nil
+    playerAccessWindows[src] = nil
+    radioSyncWindows[src] = nil
     local plateSuffix = ':' .. tostring(src)
     for key in pairs(plateWindows) do
         if key:sub(-#plateSuffix) == plateSuffix then
@@ -521,9 +766,16 @@ AddEventHandler('playerDropped', function()
     PlateNetRequest('logoff', {}, session.token, nil)
 end)
 
-AddEventHandler('onResourceStop', function(resource)
+AddEventHandler('onResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    PlateNetEachSession(function(_src, session)
-        PlateNetRequest('logoff', {}, session.token, nil)
+    CreateThread(function()
+        Wait(5000)
+        for _, id in ipairs(GetPlayers()) do
+            local src = tonumber(id)
+            if src and GetPlayerName(src) ~= nil and not PlateNetGetSession(src) then
+                PlateNetAttemptResume(src, nil)
+                Wait(250)
+            end
+        end
     end)
 end)

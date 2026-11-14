@@ -1,13 +1,9 @@
-Config = {}
+-- PlateNet CAD/MDT | https://platenet.app | Copyright (c) 2026 scentral and PlateNet. All rights reserved. See license.md.
 
--- Your PlateNet community slug.
-Config.CommunitySlug = 'your-community'
+Config = {}
 
 -- PlateNet game service URL. (DO NOT MODIFY)
 Config.GameUrl = 'https://game.platenet.app'
-
--- Update checker.(DO NOT MODIFY)
-Config.UpdateUrl = 'https://raw.githubusercontent.com/scentral/platenet/refs/heads/main/VERSION.txt'
 
 -- Commands. Set any of these to false to disable that command entirely.
 Config.Commands = {
@@ -37,13 +33,11 @@ Config.SpeedUnit = 'mph'
 -- Automatically set players off duty when they disconnect.
 Config.AutoOffDutyOnDisconnect = true
 
+-- Show a popup in game for new calls and assigned units. Set to false to turn it off on this server.
+Config.CallAlerts = true
 
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- TO CONFIGURE PLUGINS/RESOURCES SUCH AS ALPR GO TO: server/security.lua
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- +++++++++++++ Copyright (c) 2026 scentral ++++++++++++++
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- +++++++++ PlateNet CAD/MDT | www.PlateNet.app ++++++++++
--- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
---             https://discord.gg/Mpn6SwhXeW
+-- Hold a tablet while PlateNet is open on foot. Set to false to turn it off on this server.
+Config.TabletAnimation = true
+
+
+-- To allow plugins and resources such as an ALPR, see server/security.lua.

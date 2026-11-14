@@ -1,16 +1,23 @@
-PlateNet CAD/MDT Software License | https://discord.gg/Mpn6SwhXeW
+PlateNet Software License
 
-Copyright (c) 2026 scentral
-All rights reserved.
+Copyright (c) 2026 scentral and PlateNet. All rights reserved.
+https://platenet.app
 
-For purposes of this license, "PlateNet" refers to the PlateNet CAD/MDT
-project operated by scentral.
+
+DEFINITIONS
+
+"PlateNet" means the PlateNet project operated by scentral and all of its
+products, services, and works, including but not limited to PlateNet
+CAD/MDT and PlateNet Radio, and any resource, project, or work derived from
+or made for them.
+
+"Software" means this resource, including its source code, scripts,
+configuration, documentation, assets, interfaces, and related materials.
+
 
 1. LICENSE GRANT
 
-This software, including its source code, scripts, configuration,
-documentation, assets, interfaces, and related materials, is proprietary
-to PlateNet.
+The Software is proprietary to PlateNet.
 
 PlateNet grants authorized users a limited, non-exclusive,
 non-transferable, non-sublicensable, and revocable right to install and
@@ -64,9 +71,9 @@ implementation details, or security mechanisms does not grant permission
 to access protected systems, accounts, data, functionality, or
 information.
 
-Security vulnerabilities should be reported privately to PlateNet and
-may not be knowingly exploited against PlateNet, its users, connected
-systems, or third parties.
+Security vulnerabilities must be reported privately to PlateNet through
+https://platenet.app and may not be knowingly exploited against PlateNet,
+its users, connected systems, or third parties.
 
 
 4. INTEGRATIONS AND CONFIGURATION
@@ -136,4 +143,7 @@ later.
 Use of the Software constitutes acceptance of this license.
 
 
-scentral "PlateNet"|  All Rights Reserved.  | https://discord.gg/Mpn6SwhXeW
+8. CONTACT
+
+Questions, permission requests, and security reports:
+https://platenet.app
