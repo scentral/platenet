@@ -7,7 +7,7 @@ lua54 'yes'
 name 'platenet'
 description 'PlateNet CAD/MDT'
 author 'scentral | PlateNet CAD/MDT | platenet.app'
-version '1.19.8'
+version '1.19.9'
 shared_script 'config.lua'
 
 client_scripts {

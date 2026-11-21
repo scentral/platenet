@@ -19,7 +19,6 @@ html, body {
     inset: 0;
     align-items: center;
     justify-content: center;
-    padding: 3vh 3vw;
     box-sizing: border-box;
     background: rgba(0, 0, 0, 0.18);
 }
@@ -28,8 +27,9 @@ html, body {
 }
 #shell {
     position: relative;
-    width: min(1265px, 90vw);
-    height: min(760px, 84vh);
+    flex: none;
+    width: 1265px;
+    height: 760px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
     background: #0f141a;
@@ -120,6 +120,7 @@ iframe {
     flex-direction: column;
     gap: 8px;
     pointer-events: none;
+    transform-origin: top right;
 }
 .pn-card {
     display: grid;
@@ -281,16 +282,6 @@ iframe {
     font-weight: 700;
     line-height: 16px;
 }
-@media (max-width: 900px), (max-height: 650px) {
-    #wrap {
-        padding: 2vh 2vw;
-    }
-    #shell {
-        width: 94vw;
-        height: 90vh;
-        border-radius: 12px;
-    }
-}
 </style>
 </head>
 <body>
@@ -331,6 +322,7 @@ iframe {
     const settings = document.getElementById('settings');
     const scaleValue = document.getElementById('scaleValue');
     const animToggle = document.getElementById('animToggle');
+    const cardsBox = document.getElementById('cards');
     const storageKey = 'platenet_tablet_layout';
     const staleAfterMs = 10 * 60 * 1000;
 
@@ -341,13 +333,27 @@ iframe {
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+    // The tablet is laid out at 1265 x 760 and scaled to the screen: smaller screens get the
+    // largest size that fits, screens above 1920 x 1080 grow with the screen (up to 1.5x).
+    // The player's own +/- setting multiplies on top of this.
+    const fitScale = () => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        if (w >= 1920 && h >= 1080) return clamp(Math.min(w / 1920, h / 1080), 1, 1.5);
+        return clamp(Math.min((w * 0.94) / 1265, (h * 0.9) / 760), 0.4, 1);
+    };
+
     const applyLayout = () => {
+        const fit = fitScale();
         layout.scale = clamp(Number(layout.scale) || 1, 0.65, 3.0);
         layout.x = clamp(Number(layout.x) || 0, -600, 600);
         layout.y = clamp(Number(layout.y) || 0, -350, 350);
-        shell.style.transform = `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${layout.scale})`;
+        shell.style.transform = `translate3d(${layout.x}px, ${layout.y}px, 0) scale(${fit * layout.scale})`;
+        cardsBox.style.transform = fit > 1 ? `scale(${fit})` : '';
         scaleValue.textContent = `${Math.round(layout.scale * 100)}%`;
     };
+
+    window.addEventListener('resize', applyLayout);
 
     const saveLayout = () => {
         try {
@@ -395,7 +401,6 @@ iframe {
         saveLayout();
     });
 
-    const cardsBox = document.getElementById('cards');
     const liveCards = new Map();
     const maxCards = 3;
     const cardKinds = {call: 'NEW CALL', overdue: 'NEEDS A UNIT', assigned: 'ASSIGNED TO YOU'};
