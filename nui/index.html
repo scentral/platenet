@@ -333,9 +333,6 @@ iframe {
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-    // The tablet is laid out at 1265 x 760 and scaled to the screen: smaller screens get the
-    // largest size that fits, screens above 1920 x 1080 grow with the screen (up to 1.5x).
-    // The player's own +/- setting multiplies on top of this.
     const fitScale = () => {
         const w = window.innerWidth;
         const h = window.innerHeight;
