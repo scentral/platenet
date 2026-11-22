@@ -1,6 +1,6 @@
 # PlateNet CAD/MDT
 
-> **Update: November 22, 2026**
+> **Update: 11/22/2026**
 >
 > PlateNet downloads have been moved from GitHub to the **Community Owner Admin Panel** at [platenet.app](https://platenet.app).
 >
@@ -167,6 +167,12 @@ Edit `config.lua` and restart the server after changing defaults.
 
 The default tablet key can also be changed in `config.lua`. Individual players
 can change their keybinds and toggle alerts or animation in-game.
+
+> **Update: 11/22/2026**
+>
+> PlateNet downloads have been moved from GitHub to the **Community Owner Admin Panel** at [platenet.app](https://platenet.app).
+>
+> All future downloads, version updates, and feature updates will be available there.
 
 ## Links
 
