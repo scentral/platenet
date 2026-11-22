@@ -1,6 +1,6 @@
 # PlateNet CAD/MDT
 
-> **Update — November 22, 2026**
+> **Update: November 22, 2026**
 >
 > PlateNet downloads have been moved from GitHub to the **Community Owner Admin Panel** at [platenet.app](https://platenet.app).
 >
