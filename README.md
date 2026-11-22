@@ -1,5 +1,11 @@
 # PlateNet CAD/MDT
 
+> **Update — November 22, 2026**
+>
+> PlateNet downloads have been moved from GitHub to the **Community Owner Admin Panel** at [platenet.app](https://platenet.app).
+>
+> All future downloads, version updates, and feature updates will be available there.
+
 A CAD/MDT tablet for FiveM, connected to your community at
 [platenet.app](https://platenet.app). Pair a PlateNet account to use the tablet
 in-game. Players can also report emergencies without pairing.
